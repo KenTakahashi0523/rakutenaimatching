@@ -1,1 +1,2093 @@
-# rakutenaimaching
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Rakuten Smart Match Prototype</title>
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0" />
+
+    <style>
+        /* === Global Reset & Base Styles === */
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #E0E0E0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-font-smoothing: antialiased;
+            font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        /* Dynamic variables set via JS */
+        #phone-frame {
+            /* Colors - Rakuten Identity */
+            --c-brand: #BF0000;
+            /* Rakuten Red */
+            --c-brand-dark: #900000;
+
+            /* Colors - Rakuten AI Identity */
+            --c-ai-primary: #7024C4;
+            --c-ai-gradient: linear-gradient(135deg, #7024C4 0%, #C53068 100%);
+            --c-ai-light: #F3E5F5;
+
+            --c-bg-app: #FFFFFF;
+            --c-bg-base: #F2F2F7;
+            --c-text-main: #1C1C1E;
+            --c-text-sub: #3C3C43;
+            --c-text-weak: #8E8E93;
+            --c-border: #E5E5EA;
+            --c-divider: #C6C6C8;
+            --c-price: #BF0000;
+            --c-success: #34C759;
+            --c-danger: #FF3B30;
+
+            /* Dimensions */
+            --safe-top: 47px;
+            --safe-bottom: 34px;
+            --header-h: 44px;
+            --tab-h: 49px;
+            --corner-r: 44px;
+
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 0 5px #222, 0 25px 60px rgba(0, 0, 0, 0.4);
+            border-radius: var(--corner-r);
+            opacity: 0;
+            transition: opacity 0.3s;
+            color: var(--c-text-main);
+        }
+
+        /* === System UI === */
+        .dynamic-island {
+            position: absolute;
+            top: 11px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 96px;
+            height: 26px;
+            background: #000;
+            border-radius: 13px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .status-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--safe-top);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 26px 0;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            z-index: 9998;
+            pointer-events: none;
+            color: #000;
+        }
+
+        .home-indicator {
+            position: absolute;
+            bottom: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 135px;
+            height: 5px;
+            background: #000;
+            border-radius: 3px;
+            opacity: 0.2;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        /* === Screen Management === */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding-top: var(--safe-top);
+            padding-bottom: var(--safe-bottom);
+            display: flex;
+            flex-direction: column;
+            background: var(--c-bg-app);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+            overflow: hidden;
+        }
+
+        .screen.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(0);
+            z-index: 20;
+        }
+
+        .screen.next {
+            transform: translateX(100%);
+        }
+
+        .screen.prev {
+            transform: translateX(-25%);
+            filter: brightness(0.96);
+        }
+
+        /* === Header === */
+        .app-header {
+            height: var(--header-h);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.05);
+            z-index: 50;
+        }
+
+        .app-header.transparent {
+            background: transparent;
+            border: none;
+            backdrop-filter: none;
+        }
+
+        .header-title {
+            font-size: 17px;
+            font-weight: 600;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            letter-spacing: -0.01em;
+            color: var(--c-text-main);
+        }
+
+        .header-logo {
+            color: var(--c-brand);
+            font-weight: 900;
+            font-size: 20px;
+            font-family: 'Roboto', sans-serif;
+            letter-spacing: -0.5px;
+        }
+
+        /* === Scroll Container === */
+        .content-scroll {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 20px;
+        }
+
+        /* === Buttons === */
+        .icon-btn {
+            font-size: 24px;
+            color: var(--c-text-main);
+            cursor: pointer;
+            padding: 4px;
+            transition: opacity 0.2s;
+        }
+
+        .icon-btn:active {
+            opacity: 0.5;
+        }
+
+        .btn {
+            height: 52px;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            transition: transform 0.1s cubic-bezier(0.25, 0.1, 0.25, 1), opacity 0.2s;
+            letter-spacing: 0.02em;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: var(--c-brand);
+            color: white;
+            box-shadow: 0 4px 12px rgba(191, 0, 0, 0.25);
+        }
+
+        .btn-ai {
+            background: var(--c-ai-gradient);
+            color: white;
+            box-shadow: 0 8px 20px rgba(112, 36, 196, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--c-price);
+            border: 1px solid var(--c-price);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-secondary:active {
+            background: var(--c-bg-base);
+        }
+
+        .btn-finish {
+            background: white;
+            color: var(--c-text-main);
+            border: 1px solid var(--c-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            height: 56px;
+            font-size: 16px;
+        }
+
+        .btn-text {
+            background: none;
+            color: var(--c-text-sub);
+            font-size: 14px;
+            font-weight: 500;
+            height: auto;
+            padding: 12px;
+        }
+
+        .btn-text.skip {
+            border: none;
+            color: var(--c-text-sub);
+        }
+
+        /* Result Card Action Buttons */
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+        }
+
+        .btn-card-action {
+            flex: 1;
+            height: 44px;
+            border-radius: 22px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .btn-cart {
+            background: white;
+            color: var(--c-brand);
+            border-color: var(--c-brand);
+        }
+
+        .btn-cart:active {
+            background: #FFF5F5;
+        }
+
+        .btn-buy {
+            background: var(--c-brand);
+            color: white;
+            box-shadow: 0 4px 10px rgba(191, 0, 0, 0.2);
+        }
+
+        .btn-buy:active {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+
+        .search-bar-home .material-symbols-rounded {
+            background-color: #BF0000;
+            padding: 10px;
+            color: #FAFAFA;
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* === Screen 1: Home === */
+        .search-bar-home {
+            margin: 8px 16px;
+            height: 40px;
+            background: var(--c-bg-base);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 0 0 12px;
+            gap: 8px;
+            color: var(--c-text-sub);
+            font-size: 14px;
+            justify-content: space-between;
+        }
+
+        /* Search Bar in Header (Screen 2) */
+        .search-bar-header {
+            flex: 1;
+            margin: 0 12px;
+            height: 36px;
+            background: var(--c-bg-base);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 14px;
+            color: var(--c-text-main);
+            justify-content: space-between;
+        }
+
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            padding: 16px 16px 24px;
+        }
+
+        .nav-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-icon-bg {
+            width: 44px;
+            height: 44px;
+            background: #FFF;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            border: 1px solid var(--c-border);
+            color: var(--c-text-main);
+        }
+
+        .nav-label {
+            font-size: 10px;
+            color: var(--c-text-sub);
+            font-weight: 500;
+        }
+
+        .banner {
+            margin: 0 16px 24px;
+            padding: 16px 20px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #BF0000, #A00000);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(191, 0, 0, 0.15);
+        }
+
+        .product-list-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 0 16px;
+        }
+
+        .prod-card {
+            background: white;
+            border: 1px solid var(--c-border);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .prod-img {
+            aspect-ratio: 1;
+            background: #FAFAFA;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #E0E0E0;
+        }
+
+        .prod-info {
+            padding: 12px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .prod-title {
+            font-size: 13px;
+            line-height: 1.5;
+            height: 40px;
+            overflow: hidden;
+            margin-bottom: 6px;
+            color: var(--c-text-main);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .prod-price {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--c-price);
+            font-family: 'Roboto', sans-serif;
+            letter-spacing: -0.02em;
+        }
+
+        /* === Screen 2: Search Result === */
+        .sort-bar {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--c-border);
+            scrollbar-width: none;
+        }
+
+        .sort-pill {
+            padding: 6px 14px;
+            background: var(--c-bg-base);
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--c-text-main);
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .search-item {
+            display: flex;
+            gap: 16px;
+            padding: 16px;
+            border-bottom: 1px solid var(--c-border);
+            background: white;
+        }
+
+        .search-thumb {
+            width: 96px;
+            height: 96px;
+            background: #FAFAFA;
+            border-radius: 4px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #E0E0E0;
+        }
+
+        /* Floating AI Entry (Emphasized Animation) */
+        .ai-float-entry {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 0 16px calc(var(--safe-bottom) + 16px);
+            background: linear-gradient(to top, rgba(255, 255, 255, 1) 30%, rgba(255, 255, 255, 0));
+            pointer-events: none;
+            z-index: 60;
+        }
+
+        .ai-card-btn {
+            background: #111;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            animation: ai-float 3s infinite ease-in-out;
+        }
+
+        /* Shimmer Effect */
+        .ai-card-btn::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transform: skewX(-20deg);
+            animation: ai-shimmer 3s infinite;
+        }
+
+        @keyframes ai-float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+            }
+
+            50% {
+                transform: translateY(-4px);
+                box-shadow: 0 20px 40px rgba(112, 36, 196, 0.3);
+            }
+        }
+
+        @keyframes ai-shimmer {
+
+            0%,
+            60% {
+                left: -100%;
+            }
+
+            100% {
+                left: 200%;
+            }
+        }
+
+        .ai-card-btn:active {
+            transform: scale(0.98);
+            animation: none;
+        }
+
+        .ai-card-btn::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(112, 36, 196, 0.4) 0%, transparent 70%);
+            pointer-events: none;
+            opacity: 0.8;
+        }
+
+        .ai-card-icon-bg {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--c-ai-gradient);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* === Screen 3: Tutorial === */
+        .tuto-slide {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0 40px;
+        }
+
+        .tuto-anim-container {
+            height: 180px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            position: relative;
+        }
+
+        /* Step 1: Swipe Animation */
+        .tuto-stack {
+            position: relative;
+            width: 140px;
+            height: 180px;
+        }
+
+        .tuto-card-mock {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: white;
+            border: 1px solid #E0E0E0;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            top: 0;
+            left: 0;
+        }
+
+        .tuto-card-top {
+            z-index: 2;
+            animation: tutoCardSwipe 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tuto-card-back {
+            z-index: 1;
+            transform: scale(0.9) translateY(12px);
+            background: #F9F9F9;
+        }
+
+        .tuto-hand {
+            position: absolute;
+            bottom: -30px;
+            right: -30px;
+            z-index: 10;
+            font-size: 48px;
+            color: #333;
+            animation: tutoHandSwipe 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+        }
+
+        @keyframes tutoCardSwipe {
+
+            0%,
+            15% {
+                transform: translateX(0) rotate(0);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translateX(-120px) rotate(-15deg);
+                opacity: 0;
+            }
+
+            51% {
+                transform: translateX(0) rotate(0);
+                opacity: 0;
+            }
+
+            70%,
+            100% {
+                transform: translateX(0) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes tutoHandSwipe {
+
+            0%,
+            15% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+
+            50% {
+                transform: translate(-100px, -20px);
+                opacity: 0;
+            }
+
+            51% {
+                transform: translate(0, 0);
+                opacity: 0;
+            }
+
+            70%,
+            100% {
+                transform: translate(0, 0);
+                opacity: 1;
+            }
+        }
+
+        /* Step 2: Analyze Animation */
+        .tuto-reviews {
+            position: relative;
+            width: 200px;
+            height: 150px;
+        }
+
+        .tuto-bubble {
+            position: absolute;
+            font-size: 24px;
+            color: #BBB;
+            animation: tutoBubbleFloat 3s infinite ease-in-out;
+        }
+
+        .tuto-brain-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 64px;
+            color: var(--c-ai-primary);
+            filter: drop-shadow(0 0 20px rgba(112, 36, 196, 0.3));
+            animation: tutoPulse 2s infinite;
+        }
+
+        @keyframes tutoBubbleFloat {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(-10px) scale(0.9);
+            }
+        }
+
+        @keyframes tutoPulse {
+
+            0%,
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+            }
+        }
+
+        /* Step 3: Result Animation */
+        .tuto-stars {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .tuto-star-card {
+            width: 40px;
+            height: 60px;
+            background: white;
+            border: 1px solid #EEE;
+            border-radius: 6px;
+            animation: tutoPop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .tuto-star-card.main {
+            width: 60px;
+            height: 110px;
+            border: 2px solid var(--c-ai-primary);
+            box-shadow: 0 8px 20px rgba(112, 36, 196, 0.2);
+        }
+
+        @keyframes tutoPop {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+
+        /* === Screen 4: Config === */
+        #screen-config .content-scroll {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 0;
+        }
+
+        .config-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 24px;
+        }
+
+        .config-title-area {
+            margin-bottom: 32px;
+            text-align: center;
+        }
+
+        .config-section {
+            padding: 0;
+            margin-bottom: 32px;
+            background: transparent;
+            border: none;
+        }
+
+        .config-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--c-text-sub);
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .chip {
+            padding: 10px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--c-border);
+            font-size: 13px;
+            background: white;
+            color: var(--c-text-main);
+            transition: 0.2s;
+        }
+
+        .chip.selected {
+            background: var(--c-ai-gradient);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(58, 125, 255, 0.25);
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--c-brand);
+        }
+
+        /* === Screen 5: Swipe === */
+        .swipe-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar-area {
+            padding: 16px 24px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .progress-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .progress-track {
+            width: 100%;
+            height: 6px;
+            background: #E0E0E0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--c-ai-gradient);
+            width: 0%;
+            transition: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .progress-label {
+            font-size: 11px;
+            color: var(--c-text-sub);
+            font-weight: 500;
+        }
+
+        .progress-count {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--c-text-main);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-count-anim {
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: inline-block;
+        }
+
+        .card-stack-area {
+            flex: 1;
+            position: relative;
+            margin: 24px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .swipe-card {
+            position: absolute;
+            width: 100%;
+            max-width: 340px;
+            height: 100%;
+            max-height: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--c-border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 32px;
+            text-align: center;
+            transform-origin: bottom center;
+            will-change: transform;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+
+        .card-tag {
+            background: var(--c-ai-light);
+            color: var(--c-ai-start);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 100px;
+            margin-bottom: 28px;
+        }
+
+        .card-icon-circle {
+            width: 100px;
+            height: 100px;
+            background: var(--c-bg-base);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--c-ai-start);
+            margin-bottom: 32px;
+        }
+
+        .card-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            line-height: 1.3;
+            color: var(--c-text-main);
+        }
+
+        .card-desc {
+            font-size: 15px;
+            color: var(--c-text-sub);
+            line-height: 1.7;
+        }
+
+        .control-area {
+            height: 130px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 100px;
+            padding-top: 25px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .control-group:active .control-btn {
+            transform: scale(0.92);
+        }
+
+        .control-btn {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: 0.1s cubic-bezier(0.25, 0.1, 0.25, 1);
+            border: 1px solid var(--c-border);
+        }
+
+        .btn-nope {
+            color: var(--c-text-sub);
+        }
+
+        .btn-like {
+            color: white;
+            background: var(--c-ai-gradient);
+            box-shadow: 0 8px 20px rgba(58, 125, 255, 0.3);
+            border: none;
+        }
+
+        .control-label {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .label-nope {
+            color: var(--c-text-sub);
+        }
+
+        .label-like {
+            color: var(--c-ai-primary);
+        }
+
+        .stamp-overlay {
+            position: absolute;
+            top: 60px;
+            border: 4px solid;
+            padding: 6px 16px;
+            border-radius: 12px;
+            font-size: 32px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        /* === Screen 6: Result (Carousel Style) === */
+        #screen-result .content-scroll {
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+        }
+
+        .result-container {
+            display: flex;
+            flex-direction: column;
+            padding-top: 16px;
+        }
+
+        .result-header-area {
+            padding: 0 20px 12px;
+            flex-shrink: 0;
+        }
+
+        /* Horizontal Carousel */
+        .result-cards-scroll {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 0 20px 40px;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+        }
+
+        .result-cards-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Unified Card Style */
+        .best-card {
+            min-width: 90%;
+            /* Show one card prominently */
+            scroll-snap-align: center;
+            border-radius: 16px;
+            border: 1px solid var(--c-border);
+            background: white;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        /* Special Border for Best Match with AI Gradient */
+        .best-card.is-best {
+            border: 3px solid transparent;
+            background-image: linear-gradient(#FFF, #FFF), var(--c-ai-gradient);
+            background-origin: border-box;
+            background-clip: padding-box, border-box;
+            box-shadow: 0 12px 30px rgba(112, 36, 196, 0.2);
+        }
+
+        .best-card-top {
+            position: relative;
+            height: 180px;
+            background: #FAFAFA;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .best-card-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .best-badge {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: var(--c-ai-gradient);
+            color: white;
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 700;
+            border-bottom-right-radius: 12px;
+            z-index: 2;
+        }
+
+        .best-badge.secondary {
+            background: var(--c-text-weak);
+        }
+
+        .best-content {
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .best-title {
+            font-size: 16px;
+            margin-bottom: 4px;
+            line-height: 1.3;
+            color: var(--c-text-main);
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .best-price {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--c-price);
+            margin-bottom: 12px;
+        }
+
+        .reason-box {
+            background: var(--c-ai-light);
+            padding: 12px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .reason-label {
+            color: var(--c-ai-start);
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .reason-text {
+            font-size: 13px;
+            color: var(--c-text-main);
+            line-height: 1.5;
+        }
+
+        /* Details Section (Always Visible) */
+        .details-content {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--c-border);
+            display: block;
+        }
+
+        .detail-row {
+            margin-bottom: 8px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 4px;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .detail-key {
+            color: var(--c-text-sub);
+        }
+
+        .detail-val {
+            color: var(--c-text-main);
+            font-weight: 500;
+        }
+
+        /* 5-Image Vertical Gallery */
+        .detail-gallery {
+            margin-top: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gallery-img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--c-border);
+            object-fit: cover;
+            background: #FAFAFA;
+            min-height: 120px;
+            aspect-ratio: 4 / 3;
+        }
+
+        /* === Footer Nav === */
+        .tab-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: calc(var(--tab-h) + var(--safe-bottom));
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--c-border);
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-around;
+            padding-top: 8px;
+            z-index: 100;
+        }
+
+        .tab-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            width: 64px;
+            cursor: pointer;
+        }
+
+        .tab-icon {
+            font-size: 26px;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .tab-label {
+            font-size: 10px;
+            color: #999;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .tab-item.active .tab-icon,
+        .tab-item.active .tab-label {
+            color: var(--c-brand);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="phone-frame">
+        <!-- Status Bar & Dynamic Island -->
+        <div class="dynamic-island"></div>
+        <div class="status-bar">
+            <span>9:41</span>
+            <div style="display:flex; gap:6px;">
+                <span class="material-symbols-rounded" style="font-size:18px;">signal_cellular_alt</span>
+                <span class="material-symbols-rounded" style="font-size:18px;">wifi</span>
+                <span class="material-symbols-rounded" style="font-size:18px;">battery_full</span>
+            </div>
+        </div>
+        <div class="home-indicator"></div>
+
+        <!-- 1. Home Screen -->
+        <div id="screen-home" class="screen active">
+            <div class="app-header">
+                <span class="header-logo">Rakuten</span>
+                <div style="display:flex; gap:16px;">
+                    <span class="material-symbols-rounded icon-btn">notifications</span>
+                    <span class="material-symbols-rounded icon-btn">shopping_cart</span>
+                </div>
+            </div>
+
+            <div class="content-scroll" style="padding-bottom: 90px;">
+                <div class="search-bar-home" onclick="nav('screen-search')">
+                    <span>キーワード検索</span>
+                    <span class="material-symbols-rounded" style="font-size:20px;">search</span>
+                </div>
+
+                <div class="nav-grid">
+                    <div class="nav-cell">
+                        <div class="nav-icon-bg">🏆</div>
+                        <div class="nav-label">ランキング</div>
+                    </div>
+                    <div class="nav-cell">
+                        <div class="nav-icon-bg">🎟️</div>
+                        <div class="nav-label">クーポン</div>
+                    </div>
+                    <div class="nav-cell">
+                        <div class="nav-icon-bg">💎</div>
+                        <div class="nav-label">SPU</div>
+                    </div>
+                    <div class="nav-cell">
+                        <div class="nav-icon-bg">📦</div>
+                        <div class="nav-label">購入履歴</div>
+                    </div>
+                    <div class="nav-cell">
+                        <div class="nav-icon-bg">💳</div>
+                        <div class="nav-label">カード</div>
+                    </div>
+                </div>
+
+                <div class="banner">
+                    <div>
+                        <div style="font-size:11px; opacity:0.9;">お買い物マラソン</div>
+                        <div style="font-size:17px; font-weight:700; margin:2px 0;">ポイント最大10倍</div>
+                        <div
+                            style="font-size:10px; background:rgba(255,255,255,0.25); display:inline-block; padding:2px 6px; border-radius:4px;">
+                            あと5時間</div>
+                    </div>
+                    <span class="material-symbols-rounded" style="font-size:40px;">timer</span>
+                </div>
+
+                <h3 style="padding: 16px 16px 12px; font-size: 17px;">あなたへのおすすめ</h3>
+                <div class="product-list-grid">
+                    <div class="prod-card">
+                        <div class="prod-img"><span class="material-symbols-rounded"
+                                style="font-size:40px; color:#D1D1D6;">headphones</span></div>
+                        <div class="prod-info">
+                            <div class="prod-title">Sony WF-1000XM5 ノイズキャンセリング...</div>
+                            <div class="prod-price">38,900円</div>
+                        </div>
+                    </div>
+                    <div class="prod-card">
+                        <div class="prod-img"><span class="material-symbols-rounded"
+                                style="font-size:40px; color:#D1D1D6;">earbuds</span></div>
+                        <div class="prod-info">
+                            <div class="prod-title">Technics EAH-AZ80 高音質ワイヤレス...</div>
+                            <div class="prod-price">34,500円</div>
+                        </div>
+                    </div>
+                    <div class="prod-card">
+                        <div class="prod-img"><span class="material-symbols-rounded"
+                                style="font-size:40px; color:#D1D1D6;">headphones_battery</span></div>
+                        <div class="prod-info">
+                            <div class="prod-title">Anker Soundcore Liberty 4...</div>
+                            <div class="prod-price">14,990円</div>
+                        </div>
+                    </div>
+                    <div class="prod-card">
+                        <div class="prod-img"><span class="material-symbols-rounded"
+                                style="font-size:40px; color:#D1D1D6;">headset_mic</span></div>
+                        <div class="prod-info">
+                            <div class="prod-title">Bose QuietComfort Ultra Earbuds...</div>
+                            <div class="prod-price">36,000円</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-bar">
+                <div class="tab-item active"><span class="material-symbols-rounded tab-icon"
+                        style="font-variation-settings:'FILL'1">home</span><span class="tab-label">ホーム</span></div>
+                <div class="tab-item"><span class="material-symbols-rounded tab-icon">search</span><span
+                        class="tab-label">さがす</span></div>
+                <div class="tab-item"><span class="material-symbols-rounded tab-icon">star</span><span
+                        class="tab-label">お気に入り</span></div>
+                <div class="tab-item"><span class="material-symbols-rounded tab-icon">person</span><span
+                        class="tab-label">会員証</span></div>
+            </div>
+        </div>
+
+        <!-- 2. Search Result -->
+        <div id="screen-search" class="screen">
+            <div class="app-header">
+                <span class="material-symbols-rounded icon-btn" onclick="back()">arrow_back</span>
+                <!-- Search Bar in Header -->
+                <div class="search-bar-header">
+                    <span class="search-text">ワイヤレスイヤホン</span>
+                    <span class="material-symbols-rounded" style="font-size:20px; color:#999;">mic</span>
+                </div>
+                <span style="width:24px;"></span>
+            </div>
+
+            <div class="content-scroll" style="background:white; padding-bottom:120px;">
+                <div class="sort-bar">
+                    <div class="sort-pill">標準</div>
+                    <div class="sort-pill">価格が安い</div>
+                    <div class="sort-pill">レビュー件数</div>
+                    <div class="sort-pill">絞り込み</div>
+                </div>
+
+                <div class="search-item">
+                    <div class="search-thumb"><span class="material-symbols-rounded"
+                            style="color:#D1D1D6;">headphones</span></div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="prod-title" style="height:auto; margin-bottom:6px;">Sony WF-1000XM5 プラチナシルバー</div>
+                        <div class="prod-price" style="font-size:17px;">38,900円</div>
+                        <div style="font-size:11px; color:#8E8E93; margin-top:4px;">★ 4.8 (1,240件)</div>
+                    </div>
+                </div>
+                <div class="search-item">
+                    <div class="search-thumb"><span class="material-symbols-rounded"
+                            style="color:#D1D1D6;">earbuds</span></div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="prod-title" style="height:auto; margin-bottom:6px;">Technics EAH-AZ80 ブラック</div>
+                        <div class="prod-price" style="font-size:17px;">34,500円</div>
+                        <div style="font-size:11px; color:#8E8E93; margin-top:4px;">★ 4.7 (890件)</div>
+                    </div>
+                </div>
+                <div class="search-item">
+                    <div class="search-thumb"><span class="material-symbols-rounded"
+                            style="color:#D1D1D6;">headphones_battery</span></div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="prod-title" style="height:auto; margin-bottom:6px;">Anker Soundcore Liberty 4</div>
+                        <div class="prod-price" style="font-size:17px;">14,990円</div>
+                        <div style="font-size:11px; color:#8E8E93; margin-top:4px;">★ 4.6 (3,500件)</div>
+                    </div>
+                </div>
+                <div class="search-item">
+                    <div class="search-thumb"><span class="material-symbols-rounded"
+                            style="color:#D1D1D6;">headset_mic</span></div>
+                    <div style="flex:1; min-width:0;">
+                        <div class="prod-title" style="height:auto; margin-bottom:6px;">Bose QuietComfort Ultra Earbuds
+                        </div>
+                        <div class="prod-price" style="font-size:17px;">36,000円</div>
+                        <div style="font-size:11px; color:#8E8E93; margin-top:4px;">★ 4.5 (420件)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ai-float-entry">
+                <div class="ai-card-btn" onclick="nav('screen-tuto')">
+                    <div style="position:relative; z-index:2;">
+                        <div style="font-size:15px; font-weight:700; margin-bottom:2px;">AIスマートマッチング</div>
+                        <div style="font-size:11px; color:#DDD;">スワイプだけでお買い物。<br>AIがレビューをまとめてあなたの重視に<br>合う商品だけをおすすめ。
+                        </div>
+                    </div>
+                    <div class="ai-card-icon-bg">
+                        <span class="material-symbols-rounded" style="color:white;">auto_awesome</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Tutorial -->
+        <div id="screen-tuto" class="screen">
+            <div style="padding:10px 16px; text-align:right;">
+                <button class="btn-text skip" onclick="nav('screen-config')">スキップ</button>
+            </div>
+
+            <div class="tuto-slide" id="tuto-container">
+                <!-- Dynamic Content -->
+            </div>
+
+            <div style="padding: 0 32px 40px;">
+                <div style="display:flex; justify-content:center; gap:8px; margin-bottom:32px;">
+                    <div class="dot active" id="dot-0"
+                        style="width:8px; height:8px; border-radius:4px; background:var(--c-ai-start);"></div>
+                    <div class="dot" id="dot-1"
+                        style="width:8px; height:8px; border-radius:4px; background:var(--c-border);"></div>
+                    <div class="dot" id="dot-2"
+                        style="width:8px; height:8px; border-radius:4px; background:var(--c-border);"></div>
+                </div>
+                <button class="btn btn-ai" onclick="nextTuto()" id="tuto-btn">次へ</button>
+            </div>
+        </div>
+
+        <!-- 4. Config (1 Screen Layout) -->
+        <div id="screen-config" class="screen" style="background:var(--c-bg-base);">
+            <div class="app-header">
+                <span class="material-symbols-rounded icon-btn" onclick="back()">arrow_back</span>
+                <span class="header-title">条件設定</span>
+                <span style="width:24px;"></span>
+            </div>
+            <div class="content-scroll">
+                <div class="config-container">
+                    <div class="config-title-area">
+                        <h2 style="font-size:22px; margin-bottom:6px;">希望条件を入力</h2>
+                        <p style="font-size:14px; color:var(--c-text-sub);">AIが最適な候補を絞り込みます</p>
+                    </div>
+
+                    <div class="config-section">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <span class="config-label" style="margin:0;">予算の上限</span>
+                            <span style="font-size:18px; font-weight:700; color:var(--c-ai-start);"
+                                id="budget-disp">¥30,000</span>
+                        </div>
+                        <input type="range" min="5000" max="100000" step="1000" value="30000"
+                            oninput="updateBudget(this.value)">
+                        <div
+                            style="display:flex; justify-content:space-between; margin-top:8px; font-size:11px; color:var(--c-text-weak);">
+                            <span>¥5,000</span><span>上限なし</span>
+                        </div>
+                    </div>
+
+                    <div class="config-section">
+                        <span class="config-label">重視するポイント <span
+                                style="font-weight:400; font-size:12px; color:var(--c-text-weak);"></span></span>
+                        <div class="chip-group">
+                            <div class="chip" onclick="selectChip(this, 'sound')">音質</div>
+                            <div class="chip" onclick="selectChip(this, 'comfort')">装着感</div>
+                            <div class="chip" onclick="selectChip(this, 'call')">通話品質</div>
+                            <div class="chip" onclick="selectChip(this, 'anc')">ノイズキャンセル</div>
+                            <div class="chip" onclick="selectChip(this, 'battery')">バッテリー</div>
+                            <div class="chip" onclick="selectChip(this, 'battery')">防水性能</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="padding:16px 20px;">
+                <button class="btn btn-ai" onclick="startMatching()">検索開始</button>
+            </div>
+        </div>
+
+        <!-- 5. Swipe (Count Down) -->
+        <div id="screen-swipe" class="screen">
+            <div class="swipe-container">
+                <!-- Header -->
+                <div class="app-header transparent" style="height:44px;">
+                    <span style="width:24px;"></span>
+                    <span class="header-title" style="font-size:15px; color:var(--c-text-sub);">AI Matching</span>
+                    <span class="btn-text" onclick="nav('screen-search')">中断</span>
+                </div>
+
+                <!-- Progress (Candidates Count) -->
+                <div class="progress-bar-area">
+                    <div class="progress-header-row">
+                        <span class="progress-label">現在の候補数</span>
+                        <span class="progress-label"><span class="progress-count progress-count-anim"
+                                id="candidate-count">36</span>件</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-fill" id="progress-fill" style="width:0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Stack -->
+                <div class="card-stack-area" id="stack">
+                    <!-- Cards injected here -->
+                </div>
+
+                <!-- Controls -->
+                <div class="control-area">
+                    <div class="control-group" onclick="manualSwipe(-1)">
+                        <div class="control-btn btn-nope">
+                            <span class="material-symbols-rounded" style="font-size:32px;">close</span>
+                        </div>
+                        <span class="control-label label-nope">重視しない</span>
+                    </div>
+                    <div class="control-group" onclick="manualSwipe(1)">
+                        <div class="control-btn btn-like">
+                            <span class="material-symbols-rounded" style="font-size:32px;">check</span>
+                        </div>
+                        <span class="control-label label-like">重視する</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Result (Carousel Layout / Static HTML Cards) -->
+        <div id="screen-result" class="screen" style="background:var(--c-bg-base);">
+            <div class="app-header">
+                <span class="material-symbols-rounded icon-btn" onclick="resetDemo()">home</span>
+                <span class="header-title">おすすめ結果</span>
+                <span class="material-symbols-rounded icon-btn">ios_share</span>
+            </div>
+            <div class="content-scroll">
+                <div class="result-container">
+                    <div class="result-header-area">
+                        <h2 style="font-size:20px; margin-bottom:4px;">最適な3つの提案</h2>
+                        <p style="font-size:12px; color:var(--c-text-sub);">条件と除外ポイントに基づき選定しました</p>
+                    </div>
+
+                    <!-- Horizontal Scroll Container with Static HTML -->
+                    <div class="result-cards-scroll" id="result-cards-container">
+
+                        <!-- Card 1 (Sony) -->
+                        <div class="best-card is-best" id="card-sony">
+                            <div class="best-card-top">
+                                <div class="best-badge">BEST MATCH</div>
+                                <img src="img/rt_11.PNG" class="best-card-img" alt="Sony WF-1000XM5"
+                                    onerror="this.style.display='none'">
+                            </div>
+                            <div class="best-content">
+                                <div class="best-title">Sony WF-1000XM5</div>
+                                <div class="best-price">38,900円</div>
+                                <div class="reason-box">
+                                    <div class="reason-label">
+                                        <span class="material-symbols-rounded"
+                                            style="font-size:16px;">verified</span>おすすめの理由
+                                    </div>
+                                    <p class="reason-text">重視された「音質」の評価が抜群に高く、懸念されていた「装着感」も前モデルより改善されています。</p>
+                                </div>
+                                <div
+                                    style="display:flex; justify-content: space-between; gap: 5px;">
+                                    <button class="btn btn-secondary" onclick="nav('screen-hold')" style="padding: 5px;">カゴに入れる</button>
+                                    <button class="btn btn-primary" onclick="nav('screen-done')">購入する</button>
+                                </div>
+
+                                <div class="details-content">
+                                    <div class="detail-row"><span class="detail-key">機能</span><span
+                                            class="detail-val">ノイキャン, ハイレゾ</span></div>
+                                    <div class="detail-row"><span class="detail-key">再生</span><span
+                                            class="detail-val">最大8時間</span></div>
+                                    <div class="detail-row"><span class="detail-key">重量</span><span
+                                            class="detail-val">約5.9g (片耳)</span></div>
+                                    <div class="detail-row"><span class="detail-key">防水</span><span
+                                            class="detail-val">IPX4相当</span></div>
+                                    <div class="detail-gallery">
+                                        <img src="img/rt_12.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                        <img src="img/rt_14.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                        <img src="img/rt_17.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2 (Technics) -->
+                        <div class="best-card" id="card-technics">
+                            <div class="best-card-top">
+                                <div class="best-badge secondary">HIGH MATCH</div>
+                                <img src="img/rt_16.PNG" class="best-card-img" alt="Technics EAH-AZ80"
+                                    onerror="this.style.display='none'">
+                            </div>
+                            <div class="best-content">
+                                <div class="best-title">Technics EAH-AZ80</div>
+                                <div class="best-price">34,500円</div>
+                                <div class="reason-box">
+                                    <div class="reason-label">
+                                        <span class="material-symbols-rounded"
+                                            style="font-size:16px;">verified</span>おすすめの理由
+                                    </div>
+                                    <p class="reason-text">「通話品質」において最高クラスの評価。3台マルチポイント接続も優秀で、ビジネス利用に最適です。</p>
+                                </div>
+                                <div
+                                    style="display:flex; justify-content: space-between; gap: 5px;">
+                                    <button class="btn btn-secondary" onclick="nav('screen-hold')">カゴに入れる</button>
+                                    <button class="btn btn-primary" onclick="nav('screen-done')">購入する</button>
+                                </div>
+
+                                <div class="details-content">
+                                    <div class="detail-row"><span class="detail-key">機能</span><span
+                                            class="detail-val">3台マルチポイント, JustMyVoice</span></div>
+                                    <div class="detail-row"><span class="detail-key">再生</span><span
+                                            class="detail-val">最大7時間</span></div>
+                                    <div class="detail-row"><span class="detail-key">重量</span><span
+                                            class="detail-val">約7g (片耳)</span></div>
+                                    <div class="detail-row"><span class="detail-key">防水</span><span
+                                            class="detail-val">IPX4相当</span></div>
+                                    <div class="detail-gallery">
+                                        <img src="img/rt_17.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                        <img src="img/rt_15.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                        <img src="img/rt_18.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Card 3 (Bose) -->
+                        <div class="best-card" id="card-bose">
+                            <div class="best-card-top">
+                                <div class="best-badge secondary">HIGH MATCH</div>
+                                <img src="img/rt_110.PNG" class="best-card-img" alt="Bose QC Ultra"
+                                    onerror="this.style.display='none'">
+                            </div>
+                            <div class="best-content">
+                                <div class="best-title">Bose QC Ultra</div>
+                                <div class="best-price">36,000円</div>
+                                <div class="reason-box">
+                                    <div class="reason-label">
+                                        <span class="material-symbols-rounded"
+                                            style="font-size:16px;">verified</span>おすすめの理由
+                                    </div>
+                                    <p class="reason-text">世界最高クラスのノイズキャンセリング性能。装着感も非常に軽く、長時間のフライトなどに最適です。</p>
+                                </div>
+                                <div
+                                    style="display:flex; justify-content: space-between; gap: 5px;">
+                                    <button class="btn btn-secondary" onclick="nav('screen-hold')">カゴに入れる</button>
+                                    <button class="btn btn-primary" onclick="nav('screen-done')">購入する</button>
+                                </div>
+
+                                <div class="details-content">
+                                    <div class="detail-row"><span class="detail-key">機能</span><span
+                                            class="detail-val">Immersive Audio, CustomTune</span></div>
+                                    <div class="detail-row"><span class="detail-key">再生</span><span
+                                            class="detail-val">最大6時間</span></div>
+                                    <div class="detail-row"><span class="detail-key">重量</span><span
+                                            class="detail-val">約6.2g (片耳)</span></div>
+                                    <div class="detail-row"><span class="detail-key">防水</span><span
+                                            class="detail-val">IPX4</span></div>
+                                    <div class="detail-gallery">
+                                        <img src="img/rt_19.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                        <img src="img/rt_111.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                        <img src="img/rt_112.PNG" class="gallery-img" alt="Detail"
+                                            onerror="this.style.display='none'">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Done / Hold -->
+        <div id="screen-done" class="screen" style="justify-content:center; align-items:center; text-align:center;">
+            <span class="material-symbols-rounded"
+                style="font-size:64px; color:var(--c-success); margin-bottom:24px;">check_circle</span>
+            <h2 id="done-title" style="font-size:22px; margin-bottom:12px;">商品を購入しました</h2>
+            <p id="done-desc" style="font-size:15px; margin-bottom:30px; color:var(--c-text-sub);">注文内容は注文履歴で確認できます。</p>
+            <button class="btn btn-finish" onclick="resetDemo()">トップページに戻る</button>
+        </div>
+
+        <div id="screen-hold" class="screen" style="justify-content:center; align-items:center; text-align:center;">
+            <span class="material-symbols-rounded"
+                style="font-size:64px; color:#C7C7CC; margin-bottom:24px;">bookmark</span>
+            <h2 style="font-size:22px; margin-bottom:12px;">カゴに追加しました</h2>
+            <p style="font-size:15px; margin-bottom:30px; color:var(--c-text-sub);">あとでまとめて購入できます。</p>
+            <div>
+                <button class="btn btn-finish" onclick="resetDemo()">トップページに戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Data */
+        const DATA = {
+            tutos: [
+                {
+                    type: 'swipe',
+                    title: 'スワイプでこだわり決定',
+                    desc: 'こだわりたい条件を\n右にスワイプしていくだけ。\nこだわらない条件は右にスワイプ'
+                },
+                {
+                    type: 'analyze',
+                    title: 'みんなの声を選ぶ基準に',
+                    desc: '膨大なレビューをAIが分析し、\n判断ポイントとして項目化してサポート'
+                },
+                {
+                    type: 'result',
+                    title: '最適な3つへ',
+                    desc: 'あなたの選択に基づき、数ある中から\n納得できるベストな3つを提案します'
+                }
+            ],
+            cards: [
+                { title: '音質：低音の強さ', text: '「迫力がある」という高評価と「強すぎて疲れる」という意見に分かれる傾向があります。', tag: '好みが分かれる', icon: 'graphic_eq' },
+                { title: '装着感：圧迫感', text: 'カナル型特有の密閉感があります。「遮音性は高いが、長時間は耳が痛くなる」との声あり。', tag: '装着感', icon: 'hearing' },
+                { title: 'ゲーム遅延', text: '音楽鑑賞は快適ですが、「音ゲーなどのシビアなゲームでは遅延が気になる」との報告があります。', tag: '利用シーン', icon: 'sports_esports' },
+                { title: '通話：屋外ノイズ', text: '静かな室内ではクリアですが、「風切り音や周囲の雑音を拾いやすい」という弱点があります。', tag: '通話品質', icon: 'mic_off' },
+                { title: '接続安定性', text: '「満員電車など混雑した場所で稀に途切れることがある」という報告が一部あります。', tag: '安定性', icon: 'wifi_off' }
+            ]
+        };
+
+        let state = {
+            screen: 'screen-home',
+            history: ['screen-home'],
+            tutoIdx: 0,
+            budget: 30000,
+            priority: null,
+            cardIdx: 0,
+            candidates: 36
+        };
+
+        /* Resizing for Desktop Preview */
+        function resize() {
+            const frame = document.getElementById('phone-frame');
+            const vH = window.innerHeight;
+            const vW = window.innerWidth;
+            const aspect = 9 / 19.5;
+            let h = Math.min(vH * 0.96, 920);
+            let w = h * aspect;
+            if (w > vW * 0.96) { w = vW * 0.96; h = w / aspect; }
+            frame.style.width = `${w}px`;
+            frame.style.height = `${h}px`;
+            frame.style.opacity = 1;
+        }
+        window.addEventListener('resize', resize);
+        document.addEventListener('DOMContentLoaded', resize);
+
+        /* Navigation */
+        function nav(id) {
+            if (state.screen === id) return;
+            const next = document.getElementById(id);
+            const curr = document.getElementById(state.screen);
+            next.classList.remove('active', 'prev', 'next');
+            next.classList.add('next');
+            next.style.display = 'flex';
+            void next.offsetWidth;
+            curr.classList.add('prev');
+            curr.classList.remove('active');
+            next.classList.remove('next');
+            next.classList.add('active');
+            state.history.push(id);
+            state.screen = id;
+
+            if (id === 'screen-tuto') renderTutoContent();
+        }
+        function back() {
+            if (state.history.length < 2) return;
+            state.history.pop();
+            const prevId = state.history[state.history.length - 1];
+            const curr = document.getElementById(state.screen);
+            const prev = document.getElementById(prevId);
+            curr.classList.remove('active');
+            curr.classList.add('next');
+            prev.classList.remove('prev');
+            prev.classList.add('active');
+            state.screen = prevId;
+        }
+
+        function resetDemo() {
+            state = {
+                screen: 'screen-home',
+                history: ['screen-home'],
+                tutoIdx: 0,
+                budget: 30000,
+                priority: null,
+                cardIdx: 0,
+                candidates: 36
+            };
+            // Reset Accordions
+            document.querySelectorAll('.best-card').forEach(c => c.classList.remove('expanded'));
+
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active', 'prev', 'next'));
+            document.getElementById('screen-home').classList.add('active');
+        }
+
+        function handleAction(type) {
+            const doneTitle = document.getElementById('done-title');
+            const doneDesc = document.getElementById('done-desc');
+
+            if (type === 'buy') {
+                doneTitle.innerText = '購入完了しました';
+                doneDesc.innerText = 'ご注文ありがとうございます。\n確認メールをお送りしました。';
+            } else {
+                doneTitle.innerText = 'カートに追加しました';
+                doneDesc.innerText = '比較の迷いが晴れて何よりです。';
+            }
+            nav('screen-done');
+        }
+
+        /* Tuto Logic */
+        function renderTutoContent() {
+            const d = DATA.tutos[state.tutoIdx];
+            const container = document.getElementById('tuto-container');
+
+            let visualHTML = '';
+            if (d.type === 'swipe') {
+                visualHTML = `
+                <div class="tuto-anim-container">
+                    <div class="tuto-stack">
+                        <div class="tuto-card-mock tuto-card-back"></div>
+                        <div class="tuto-card-mock tuto-card-top">
+                            <div style="width:60px; height:60px; background:#F2F2F7; border-radius:50%; margin:0 auto;"></div>
+                            <div style="width:80px; height:10px; background:#F2F2F7; border-radius:4px; margin:0 auto;"></div>
+                        </div>
+                    </div>
+                    <span class="material-symbols-rounded tuto-hand">touch_app</span>
+                </div>
+            `;
+            } else if (d.type === 'analyze') {
+                visualHTML = `
+                <div class="tuto-anim-container">
+                    <div class="tuto-reviews">
+                        <span class="material-symbols-rounded tuto-bubble" style="top:10%; left:10%; animation-delay:0s">chat</span>
+                        <span class="material-symbols-rounded tuto-bubble" style="top:20%; right:10%; animation-delay:0.5s">rate_review</span>
+                        <span class="material-symbols-rounded tuto-bubble" style="bottom:10%; left:20%; animation-delay:1s">thumb_up</span>
+                        <span class="material-symbols-rounded tuto-brain-icon">psychology</span>
+                    </div>
+                </div>
+            `;
+            } else {
+                visualHTML = `
+                <div class="tuto-anim-container">
+                    <div class="tuto-stars">
+                        <div class="tuto-star-card" style="animation-delay:0s"></div>
+                        <div class="tuto-star-card main" style="animation-delay:0.2s"></div>
+                        <div class="tuto-star-card" style="animation-delay:0.4s"></div>
+                    </div>
+                </div>
+            `;
+            }
+
+            container.innerHTML = `
+            ${visualHTML}
+            <h2 style="font-size:24px; margin-bottom:12px; letter-spacing: -0.01em;">${d.title}</h2>
+            <p style="font-size:15px; line-height:1.7; color:var(--c-text-sub);">${d.desc.replace(/\n/g, '<br>')}</p>
+        `;
+
+            document.querySelectorAll('.dot').forEach((e, i) => e.style.background = (i === state.tutoIdx) ? 'var(--c-ai-start)' : 'var(--c-border)');
+
+            const btn = document.getElementById('tuto-btn');
+            if (state.tutoIdx === DATA.tutos.length - 1) btn.innerText = '始める';
+            else btn.innerText = '次へ';
+        }
+
+        function nextTuto() {
+            state.tutoIdx++;
+            if (state.tutoIdx >= DATA.tutos.length) { nav('screen-config'); return; }
+            renderTutoContent();
+        }
+
+        function updateBudget(v) {
+            state.budget = v;
+            document.getElementById('budget-disp').innerText = '¥' + parseInt(v).toLocaleString();
+        }
+        function selectChip(el, key) {
+            document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            state.priority = key;
+        }
+
+        function startMatching() {
+            state.cardIdx = 0;
+            state.candidates = 36;
+            document.getElementById('candidate-count').innerText = 36;
+            initCards();
+            nav('screen-swipe');
+        }
+
+        /* Swipe Logic */
+        function initCards() {
+            const stack = document.getElementById('stack');
+            stack.innerHTML = '';
+
+            [...DATA.cards].reverse().forEach((d, i) => {
+                const el = document.createElement('div');
+                el.className = 'swipe-card';
+                el.id = 'card-' + i;
+                el.style.zIndex = i + 1;
+
+                let depth = DATA.cards.length - 1 - i;
+                if (depth < 3) {
+                    el.style.transform = `scale(${1 - (depth * 0.04)}) translateY(${depth * 12}px)`;
+                    el.style.opacity = 1;
+                    el.style.display = 'flex';
+                } else {
+                    el.style.transform = `scale(0.9) translateY(36px)`;
+                    el.style.opacity = 0;
+                    el.style.display = 'none';
+                }
+
+                el.innerHTML = `
+                <div class="stamp-overlay" style="right:40px; color:var(--c-danger); border-color:var(--c-danger); transform:rotate(15deg);" id="s-nope-${i}">重視しない</div>
+                <div class="stamp-overlay" style="left:40px; color:var(--c-success); border-color:var(--c-success); transform:rotate(-15deg);" id="s-like-${i}">重視する</div>
+                <div class="card-tag">${d.tag}</div>
+                <div class="card-icon-circle"><span class="material-symbols-rounded" style="font-size:48px;">${d.icon}</span></div>
+                <div class="card-title">${d.title}</div>
+                <div class="card-desc">${d.text}</div>
+            `;
+                stack.appendChild(el);
+            });
+            setupDrag();
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const pct = ((state.cardIdx) / DATA.cards.length) * 100;
+            document.getElementById('progress-fill').style.width = `${pct}%`;
+            const currEl = document.getElementById('candidate-count');
+            currEl.style.opacity = 0.2;
+            currEl.style.transform = 'translateY(4px)';
+            setTimeout(() => {
+                let nextVal = Math.max(3, Math.floor(state.candidates * 0.8));
+                if (state.cardIdx === DATA.cards.length) nextVal = 3;
+                state.candidates = nextVal;
+                currEl.innerText = state.candidates;
+                currEl.style.opacity = 1;
+                currEl.style.transform = 'translateY(0)';
+            }, 100);
+        }
+
+        let curCard, startX, isDrag;
+        function setupDrag() {
+            const cards = document.querySelectorAll('.swipe-card');
+            const visibleCards = Array.from(cards).filter(c => c.style.display !== 'none');
+            if (visibleCards.length === 0) { showResult(); return; }
+            curCard = visibleCards[visibleCards.length - 1];
+            curCard.addEventListener('touchstart', onStart);
+            curCard.addEventListener('touchmove', onMove);
+            curCard.addEventListener('touchend', onEnd);
+            curCard.addEventListener('mousedown', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onEnd);
+        }
+
+        function onStart(e) {
+            isDrag = true;
+            startX = e.clientX || e.touches[0].clientX;
+            curCard.style.transition = 'none';
+        }
+        function onMove(e) {
+            if (!isDrag) return;
+            const x = (e.clientX || e.touches[0].clientX) - startX;
+            curCard.style.transform = `translateX(${x}px) rotate(${x * 0.05}deg)`;
+            const nope = curCard.querySelector(`[id^=s-nope]`);
+            const like = curCard.querySelector(`[id^=s-like]`);
+            if (x < 0) {
+                nope.style.opacity = Math.min(Math.abs(x) / 100, 1);
+                like.style.opacity = 0;
+            } else {
+                like.style.opacity = Math.min(x / 100, 1);
+                nope.style.opacity = 0;
+            }
+        }
+        function onEnd(e) {
+            if (!isDrag) return;
+            isDrag = false;
+            const x = new WebKitCSSMatrix(curCard.style.transform).m41;
+            if (Math.abs(x) > 80) finishSwipe(x > 0 ? 1 : -1);
+            else {
+                curCard.style.transition = 'transform 0.3s ease';
+                curCard.style.transform = 'translateX(0)';
+                curCard.querySelectorAll('.stamp-overlay').forEach(s => s.style.opacity = 0);
+            }
+        }
+
+        function manualSwipe(dir) {
+            if (!curCard) return;
+            curCard.style.transition = 'transform 0.4s ease';
+            curCard.style.transform = `translateX(${dir * 500}px) rotate(${dir * 15}deg)`;
+            setTimeout(() => finishSwipe(dir), 200);
+        }
+
+        function finishSwipe(dir) {
+            curCard.remove();
+            state.cardIdx++;
+            updateProgress();
+            const cards = document.querySelectorAll('.swipe-card');
+            Array.from(cards).reverse().forEach((el, i) => {
+                if (i < 3) {
+                    el.style.display = 'flex';
+                    el.style.opacity = 1;
+                    el.style.transition = 'transform 0.3s ease';
+                    el.style.transform = `scale(${1 - (i * 0.04)}) translateY(${i * 12}px)`;
+                }
+            });
+            if (state.cardIdx < DATA.cards.length) setupDrag();
+            else showResult();
+        }
+
+        function showResult() {
+            // Just navigate to the screen which already has static content
+            nav('screen-result');
+        }
+    </script>
+</body>
+
+</html>
