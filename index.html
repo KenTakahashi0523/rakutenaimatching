@@ -40,7 +40,7 @@
 
             /* Colors - Rakuten AI Identity */
             --c-ai-primary: #7024C4;
-            --c-ai-gradient: linear-gradient(135deg, #7024C4 0%, #C53068 100%);
+            --c-ai-gradient: linear-gradient(135deg, #0d98f4 0%, #ff00a6 100%);
             --c-ai-light: #F3E5F5;
 
             --c-bg-app: #FFFFFF;
@@ -507,17 +507,13 @@
         }
 
         .ai-card-btn {
-            background: #111;
             color: white;
-            padding: 14px 20px;
             border-radius: 4px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             pointer-events: auto;
             cursor: pointer;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
             overflow: hidden;
             animation: ai-float 3s infinite ease-in-out;
@@ -856,7 +852,7 @@
 
         input[type=range] {
             width: 100%;
-            accent-color: var(--c-brand);
+            accent-color: var(--c-ai-gradient);
         }
 
         /* === Screen 5: Swipe === */
@@ -1197,8 +1193,8 @@
 
         /* Details Section (Always Visible) */
         .details-content {
-            margin-top: 10px;
-            padding-top: 10px;
+            margin-top: 20px;
+            padding-top: 20px;
             border-top: 1px dashed var(--c-border);
             display: block;
         }
@@ -1464,14 +1460,7 @@
 
             <div class="ai-float-entry">
                 <div class="ai-card-btn" onclick="nav('screen-tuto')">
-                    <div style="position:relative; z-index:2;">
-                        <div style="font-size:15px; font-weight:700; margin-bottom:2px;">AIスマートマッチング</div>
-                        <div style="font-size:11px; color:#DDD;">スワイプだけでお買い物。<br>AIがレビューをまとめてあなたの重視に<br>合う商品だけをおすすめ。
-                        </div>
-                    </div>
-                    <div class="ai-card-icon-bg">
-                        <span class="material-symbols-rounded" style="color:white;">auto_awesome</span>
-                    </div>
+                    <img src="img/aimaching.webp" alt="" width="382px">
                 </div>
             </div>
         </div>
@@ -1553,7 +1542,7 @@
                 <!-- Header -->
                 <div class="app-header transparent" style="height:44px;">
                     <span style="width:24px;"></span>
-                    <span class="header-title" style="font-size:15px; color:var(--c-text-sub);">AI Matching</span>
+                    <span class="header-title" style="font-size:15px; color:var(--c-text-sub);">AI Smart Matching</span>
                     <span class="btn-text" onclick="nav('screen-search')">中断</span>
                 </div>
 
